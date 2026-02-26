@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { getPosts, getUsers } from "../services/api"
 import PostList from "../components/PostList"
 
@@ -6,258 +6,158 @@ function Home() {
 
   const [posts, setPosts] = useState([])
   const [users, setUsers] = useState([])
-
   const [search, setSearch] = useState("")
-  const [debouncedSearch, setDebouncedSearch] = useState("")
-
   const [userFilter, setUserFilter] = useState("")
   const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(true)
 
-  const postsPerPage = 10
+  const postsPerPage = 8
 
-  // ---------- Carga inicial ----------
   useEffect(() => {
-    async function loadData() {
-      setLoading(true)
-      const [p, u] = await Promise.all([
-        getPosts(),
-        getUsers()
-      ])
-      setPosts(p)
-      setUsers(u)
-      setLoading(false)
-    }
-
-    loadData()
+    getPosts().then(setPosts)
+    getUsers().then(setUsers)
   }, [])
 
-  // ---------- Debounce del buscador ----------
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setDebouncedSearch(search)
-    }, 400)
+  const filtered = posts.filter(p => {
+    const matchesSearch =
+      p.title.toLowerCase().includes(search.toLowerCase()) ||
+      p.body.toLowerCase().includes(search.toLowerCase())
 
-    return () => clearTimeout(t)
-  }, [search])
+    const matchesUser =
+      userFilter ? p.userId === Number(userFilter) : true
 
-  // ---------- Reset página ----------
-  useEffect(() => {
-    setPage(1)
-  }, [debouncedSearch, userFilter])
-
-  // ---------- Filtro optimizado ----------
-  const filtered = useMemo(() => {
-    return posts.filter(p => {
-      const matchesSearch =
-        p.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        p.body.toLowerCase().includes(debouncedSearch.toLowerCase())
-
-      const matchesUser =
-        userFilter ? p.userId === Number(userFilter) : true
-
-      return matchesSearch && matchesUser
-    })
-  }, [posts, debouncedSearch, userFilter])
+    return matchesSearch && matchesUser
+  })
 
   const start = (page - 1) * postsPerPage
   const paginated = filtered.slice(start, start + postsPerPage)
 
-  const clearFilters = () => {
-    setSearch("")
-    setUserFilter("")
-  }
+  useEffect(() => {
+    setPage(1)
+  }, [search, userFilter])
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "#f3f4f6",
-      padding: "30px"
-    }}>
-
-      <div style={{
-        maxWidth: "1100px",
-        margin: "0 auto 24px auto"
-      }}>
-        <h1 style={{
-          margin: 0,
-          fontSize: "28px",
-          fontWeight: 700,
-          color: "#111827"
-        }}>
-          Publicaciones Prueba
-        </h1>
-
-        <p style={{
-          marginTop: 4,
-          color: "#6b7280"
-        }}>
-          Listado de publicaciones disponibles
-        </p>
-      </div>
-
-      {/* Filtros */}
-      <div style={{
-        maxWidth: "1100px",
-        margin: "0 auto 16px auto",
-        background: "white",
-        padding: "16px",
-        borderRadius: "12px",
-        display: "flex",
-        gap: "12px",
-        flexWrap: "wrap",
-        alignItems: "center",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.06)"
-      }}>
-
-        <input
-          placeholder="Buscar publicaciones..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(180deg,#f5f7fb,#eef2f7)",
+        padding: "40px 20px"
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1100,
+          margin: "0 auto"
+        }}
+      >
+        <h1
           style={{
-            flex: 1,
-            minWidth: "220px",
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-            outline: "none"
-          }}
-        />
-
-        <select
-          value={userFilter}
-          onChange={e => setUserFilter(e.target.value)}
-          style={{
-            minWidth: "220px",
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-            background: "white"
+            textAlign: "center",
+            marginBottom: 6,
+            fontSize: 32
           }}
         >
-          <option value="">Todos los usuarios</option>
-          {users.map(u => (
-            <option key={u.id} value={u.id}>
-              {u.name}
-            </option>
-          ))}
-        </select>
+          Explorar publicaciones
+        </h1>
 
-        {(search || userFilter) && (
-          <button
-            onClick={clearFilters}
+        <p
+          style={{
+            textAlign: "center",
+            color: "#666",
+            marginBottom: 32
+          }}
+        >
+          Descubre contenido y filtra por usuario o palabras clave
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            flexWrap: "wrap",
+            justifyContent: "center",
+            marginBottom: 32
+          }}
+        >
+          <input
+            placeholder="Buscar por texto..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
             style={{
               padding: "10px 14px",
-              borderRadius: "8px",
-              border: "1px solid #d1d5db",
-              background: "white",
-              cursor: "pointer"
+              borderRadius: 8,
+              border: "1px solid #ccc",
+              minWidth: 220
+            }}
+          />
+
+          <select
+            value={userFilter}
+            onChange={e => setUserFilter(e.target.value)}
+            style={{
+              padding: "10px 14px",
+              borderRadius: 8,
+              border: "1px solid #ccc",
+              minWidth: 220
             }}
           >
-            Limpiar
-          </button>
-        )}
+            <option value="">Todos los usuarios</option>
+            {users.map(u => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      </div>
+        <PostList posts={paginated} />
 
-      {/* Contador */}
-      <div style={{
-        maxWidth: "1100px",
-        margin: "0 auto 14px auto",
-        color: "#4b5563",
-        fontSize: "14px"
-      }}>
-        {filtered.length} resultados encontrados
-      </div>
-
-      {/* Contenido */}
-      <div style={{
-        maxWidth: "1100px",
-        margin: "0 auto"
-      }}>
-
-        {loading && (
-          <p style={{ color: "#6b7280" }}>
-            Cargando publicaciones…
-          </p>
-        )}
-
-        {!loading && filtered.length === 0 && (
-          <div style={{
-            background: "white",
-            padding: "40px",
-            borderRadius: "12px",
-            textAlign: "center",
-            color: "#6b7280"
-          }}>
-            No hay publicaciones para mostrar.
-          </div>
-        )}
-
-        {!loading && filtered.length > 0 && (
-          <PostList posts={paginated} />
-        )}
-
-        {/* Paginación */}
-        {!loading && filtered.length > 0 && (
-          <div style={{
+        <div
+          style={{
             display: "flex",
             justifyContent: "center",
-            alignItems: "center",
-            gap: "12px",
-            marginTop: "24px"
-          }}>
+            gap: 12,
+            marginTop: 30
+          }}
+        >
+          <button
+            disabled={page === 1}
+            onClick={() => setPage(page - 1)}
+            style={buttonStyle}
+          >
+            Anterior
+          </button>
 
-            <button
-              disabled={page === 1}
-              onClick={() => setPage(p => p - 1)}
-              style={{
-                padding: "8px 14px",
-                borderRadius: "8px",
-                border: "none",
-                background: page === 1 ? "#e5e7eb" : "#2563eb",
-                color: page === 1 ? "#6b7280" : "white",
-                cursor: page === 1 ? "not-allowed" : "pointer"
-              }}
-            >
-              Anterior
-            </button>
+          <span
+            style={{
+              alignSelf: "center",
+              color: "#555",
+              fontWeight: 500
+            }}
+          >
+            Página {page}
+          </span>
 
-            <span style={{ color: "#374151" }}>
-              Página {page}
-            </span>
-
-            <button
-              disabled={start + postsPerPage >= filtered.length}
-              onClick={() => setPage(p => p + 1)}
-              style={{
-                padding: "8px 14px",
-                borderRadius: "8px",
-                border: "none",
-                background:
-                  start + postsPerPage >= filtered.length
-                    ? "#e5e7eb"
-                    : "#2563eb",
-                color:
-                  start + postsPerPage >= filtered.length
-                    ? "#6b7280"
-                    : "white",
-                cursor:
-                  start + postsPerPage >= filtered.length
-                    ? "not-allowed"
-                    : "pointer"
-              }}
-            >
-              Siguiente
-            </button>
-
-          </div>
-        )}
-
+          <button
+            disabled={start + postsPerPage >= filtered.length}
+            onClick={() => setPage(page + 1)}
+            style={buttonStyle}
+          >
+            Siguiente
+          </button>
+        </div>
       </div>
-
     </div>
   )
+}
+
+const buttonStyle = {
+  padding: "10px 18px",
+  borderRadius: 8,
+  border: "none",
+  background: "#2563eb",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: 600
 }
 
 export default Home
